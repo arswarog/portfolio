@@ -1,10 +1,22 @@
+import { copyFileSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
 function normalizeBasePath(value: string | undefined) {
     const basePath = (value ?? '/').trim().replace(/^\/+|\/+$/g, '');
     return basePath ? `/${basePath}/` : '/';
+}
+
+// GitHub Pages отдаёт 404.html на прямой заход по /cases/<slug>, SPA-роутер подхватывает путь сам
+function spaFallback(): Plugin {
+    return {
+        name: 'spa-fallback',
+        apply: 'build',
+        closeBundle() {
+            copyFileSync('dist/index.html', 'dist/404.html');
+        },
+    };
 }
 
 export default defineConfig(({ mode }) => {
@@ -13,7 +25,7 @@ export default defineConfig(({ mode }) => {
 
     return {
         base,
-        plugins: [react()],
+        plugins: [react(), spaFallback()],
         resolve: {
             alias: {
                 '@': fileURLToPath(new URL('./src', import.meta.url)),
