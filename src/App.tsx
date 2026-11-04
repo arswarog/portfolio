@@ -1,7 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
 import { ScrollToTop } from '@/components/scroll-to-top';
-import { Case1Page } from '@/pages/cases/case-1';
+import { BillingCasePage } from '@/pages/cases/billing';
 import { HomePage } from '@/pages/home-page';
 import { NotFoundPage } from '@/pages/not-found-page';
 
@@ -15,8 +15,8 @@ export function App() {
                     element={<HomePage />}
                 />
                 <Route
-                    path="/cases/case-1"
-                    element={<Case1Page />}
+                    path="/cases/billing"
+                    element={<BillingCasePage />}
                 />
                 <Route
                     path="*"
