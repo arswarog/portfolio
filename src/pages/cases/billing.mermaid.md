@@ -1,46 +1,108 @@
 ```mermaid
-flowchart LR
-    classDef acc fill:#e8f0fe,stroke:#4285f4,stroke-width:1.5px,color:#17325c
-    classDef subs fill:#f3ecfe,stroke:#8b5cf6,stroke-width:1.5px,color:#3f2a72
-    classDef cred fill:#e6f7ef,stroke:#10b981,stroke-width:1.5px,color:#0b4a34
+classDiagram
+    direction LR
 
-    subgraph G1["аккаунты"]
-        REG["regions"]
-        ACC["accounts"]
-    end
+    namespace аккаунты {
+        class Region {
+            +string code
+            +string currency
+            +bool isActive
+        }
+        class Account {
+            +uuid id
+            +string name
+            +string region
+            +enum status
+        }
+    }
 
-    subgraph G2["подписки"]
-        PLAN["plans"]
-        PV["plan_versions"]
-        SUB["subscriptions"]
-        EVT["events"]
-        VCH["vouchers"]
-    end
+    namespace подписки {
+        class Plan {
+            +string code
+            +string label
+            +number tier
+            +bool requiresVoucher
+            +number fallbackPlanId
+        }
+        class PlanVersion {
+            +string versionLabel
+            +string region
+            +number priceAmount
+            +string currency
+            +timestamp validFrom
+        }
+        class Entitlements {
+            +number projectsMax
+            +number tokensGrant
+        }
+        class Subscription {
+            +timestamp periodStart
+            +timestamp periodEnd
+            +number pendingPlanId
+            +string pendingReason
+        }
+        class SubscriptionEvent {
+            +EventType type
+            +number fromPlanVersionId
+            +number toPlanVersionId
+            +jsonb meta
+            +ActorType actorType
+        }
+        class Voucher {
+            +VoucherSource source
+            +VoucherStatus status
+            +timestamp expiresAt
+            +timestamp consumedPeriodStart
+        }
+    }
 
-    subgraph G3["кредиты"]
-        LOT["lots"]
-        HOLD["holds"]
-        CP["checkpoints"]
-    end
+    namespace кредиты {
+        class Lot {
+            +LotSource source
+            +string ref
+            +number amount
+            +timestamp expiresAt
+            +number burnedAmount
+        }
+        class Hold {
+            +HoldType type
+            +number heldAmount
+            +number amount
+            +HoldStatus status
+            +timestamp expiresAt
+        }
+        class Checkpoint {
+            +timestamp at
+            +number balance
+            +number issued
+            +number spent
+            +number burned
+        }
+    }
 
-    ACC -->|"N / 1"| REG
-    PV -->|"N / 1"| PLAN
-    SUB -->|"N / 1"| PV
-    SUB -->|"1 / 1"| ACC
-    VCH -->|"N / 1"| ACC
-    VCH -->|"N / 1"| PLAN
-    LOT -->|"N / 1"| ACC
-    HOLD -->|"N / 1"| ACC
-    CP -->|"N / 1"| ACC
-    EVT -->|"N / 1"| SUB
+    class BillingHoldsService {
+        <<Публичный интерфейс>>
+        +hold(accountId, amount)
+        +adjust(holdId, amount)
+        +commit(holdId, amount)
+        +get(holdId)
+    }
 
-    SUB -->|"0 / 1"| PLAN
-    EVT -->|"N / 0..1"| PV
-    LOT -->|"N / 0..1"| CP
-    HOLD -->|"N / 0..1"| CP
-    PLAN -->|"1 / 0..1"| PLAN
-
-    class REG,ACC acc
-    class PLAN,PV,SUB,EVT,VCH subs
-    class LOT,HOLD,CP cred
+    Account "*" -- "1" Region : регион
+    Plan "1" -- "*" PlanVersion : версии
+    PlanVersion *-- Entitlements : условия
+    Plan "0..1" -- "*" Plan : fallbackPlanId
+    Account "1" -- "1" Subscription : подписка
+    PlanVersion "1" -- "*" Subscription : текущие условия
+    Plan "0..1" -- "*" Subscription : pendingPlanId
+    Subscription "1" -- "*" SubscriptionEvent : история
+    PlanVersion "0..1" -- "*" SubscriptionEvent : from/to
+    Account "1" -- "*" Voucher : ваучеры
+    Plan "1" -- "*" Voucher : план
+    Account "1" -- "*" Lot : лоты
+    Checkpoint "0..1" -- "*" Lot : подбит в
+    Account "1" -- "*" Hold : брони
+    Checkpoint "0..1" -- "*" Hold : подбита в
+    Account "1" -- "*" Checkpoint : чекпоинты
+    Checkpoint "0..1" -- "0..1" Checkpoint : previousId
 ```
